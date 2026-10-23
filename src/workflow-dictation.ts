@@ -28,6 +28,9 @@ export async function returnToPreviousApp(): Promise<void> {
   const previous = await getFrontmostApplication();
   await closeMainWindow();
   if (previous.bundleId !== RAYCAST_BUNDLE_ID) {
+    // open sends the app a reopen event, which opens a window in an app that
+    // has none (see the README). Activating it with AppleScript instead can
+    // raise a macOS Automation consent prompt for Raycast.
     await open(previous.path);
   }
 }

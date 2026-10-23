@@ -47,6 +47,10 @@ npm run dev
 
 两个版本同时运行时，扩展先连接最近启动 API 服务的那个；它拒绝令牌时，再连接另一个。如果 dictum 使用了自定义端口，在扩展设置的 **API Port Override** 里填写端口。
 
+## 从 Raycast 开始听写
+
+Start Dictation、Dictate with Workflow 和 Manage Workflows 开始或结束听写前，会关闭 Raycast 窗口并重新打开之前的应用，文字插入那个应用。重新打开会让应用收到“重新打开”事件：之前的应用没有窗口时，Finder 会新开一个窗口，TextEdit 会显示“打开”面板，文字会插入那里。先在应用里打开一个窗口或文档，再从 Raycast 开始听写。
+
 ## 翻译
 
 在 Transcribe File 的 **Translate to** 里，或 Show Last Recording 操作菜单的 **Transcribe and Translate to** 里选择目标语言后，dictum 先转写，再用 macOS 的翻译功能翻译，所以任何语音识别引擎都能翻译成列表里的任何语言。macOS 需要先下载音频语言和目标语言：在“系统设置 > 通用 > 语言与地区 > 翻译语言”里下载。缺少语言时 macOS 会在 dictum 里弹出下载窗口，扩展等待超时后会提示下载这两种语言。
@@ -101,6 +105,10 @@ The extension reads dictum's API port and token on its own. While its API server
 - Dev: `~/Library/Application Support/dictum-Dev/api-discovery.json`
 
 When both builds run, the extension first connects to the one that started its API server last; if that one rejects the token, it connects to the other. If dictum uses a custom port, set it under **API Port Override** in the extension preferences.
+
+### Starting dictation from Raycast
+
+Before Start Dictation, Dictate with Workflow and Manage Workflows start or stop a dictation, they close the Raycast window and reopen the app you came from; dictum inserts the text there. Reopening sends the app a "reopen" event: when that app has no window, Finder opens a new window and TextEdit shows its Open panel, and the text goes there. Open a window or document in the app first, then start the dictation from Raycast.
 
 ### Translation
 
