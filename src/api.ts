@@ -188,9 +188,10 @@ async function request<T>(
 
   for (const [index, instance] of candidates.entries()) {
     const url = new URL(path, `http://127.0.0.1:${instance.port}`);
-    for (const [key, value] of Object.entries(options.params ?? {})) {
-      url.searchParams.set(key, value);
-    }
+    // dictum decodes percent escapes only, so a space must not become "+".
+    url.search = Object.entries(options.params ?? {})
+      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+      .join("&");
 
     let response: Response;
     try {
