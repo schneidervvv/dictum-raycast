@@ -48,7 +48,7 @@
     {
       "name": "transcribe-file",
       "title": "Transcribe File",
-      "description": "Transcribe an audio file using dictum",
+      "description": "Transcribe an audio file using dictum, optionally translated",
       "mode": "view"
     },
     {

@@ -9,6 +9,7 @@ import {
   setRecorderTranscript,
   stopRecording,
 } from "./recorder-session";
+import { TRANSLATION_TARGET_LANGUAGES } from "./translation-languages";
 import type { RecorderSessionResponse, TranscribeResponse } from "./types";
 
 const POLL_INTERVAL_MS = 2000;
@@ -130,12 +131,16 @@ export default function Command() {
     }
   }
 
-  async function transcribe(sessionId: string, path: string) {
+  async function transcribe(
+    sessionId: string,
+    path: string,
+    targetLanguage?: string,
+  ) {
     setTranscribingSessionId(sessionId);
     try {
       const result = await apiPost<TranscribeResponse>(
         "/v1/transcribe/local-file",
-        { path },
+        { path, target_language: targetLanguage },
         {
           timeoutMs: TRANSCRIBE_TIMEOUT_MS,
           timeoutMessage: "Transcribing the recording took too long.",
@@ -171,11 +176,27 @@ export default function Command() {
             <Action title="Stop Recording" icon={Icon.Stop} onAction={stop} />
           )}
           {canTranscribe && !isAnyTranscriptionRunning && (
-            <Action
-              title="Transcribe Recording"
-              icon={Icon.Microphone}
-              onAction={() => data && transcribe(data.id, outputFile)}
-            />
+            <>
+              <Action
+                title="Transcribe Recording"
+                icon={Icon.Microphone}
+                onAction={() => data && transcribe(data.id, outputFile)}
+              />
+              <ActionPanel.Submenu
+                title="Transcribe and Translate to"
+                icon={Icon.Globe}
+              >
+                {TRANSLATION_TARGET_LANGUAGES.map((language) => (
+                  <Action
+                    key={language.code}
+                    title={language.title}
+                    onAction={() =>
+                      data && transcribe(data.id, outputFile, language.code)
+                    }
+                  />
+                ))}
+              </ActionPanel.Submenu>
+            </>
           )}
           {transcript && (
             <>

@@ -12,7 +12,10 @@ import { useEffect, useRef, useState } from "react";
 import { readFileSync, statSync } from "fs";
 import { basename } from "path";
 import { apiPostMultipart, DictumError } from "./api";
+import { TRANSLATION_TARGET_LANGUAGES } from "./translation-languages";
 import type { TranscribeResponse } from "./types";
+
+const NO_TRANSLATION = "none";
 
 const AUDIO_EXTENSIONS = [
   "wav",
@@ -130,6 +133,7 @@ export default function Command() {
     file: string[];
     language: string;
     task: string;
+    targetLanguage: string;
   }) {
     const filePath = values.file?.[0];
     if (!filePath) {
@@ -167,6 +171,9 @@ export default function Command() {
       }
       if (values.task) {
         formData.append("task", values.task);
+      }
+      if (values.targetLanguage !== NO_TRANSLATION) {
+        formData.append("target_language", values.targetLanguage);
       }
 
       const result = await apiPostMultipart<TranscribeResponse>(
@@ -220,6 +227,20 @@ export default function Command() {
       <Form.Dropdown id="task" title="Task" defaultValue="transcribe">
         <Form.Dropdown.Item value="transcribe" title="Transcribe" />
         <Form.Dropdown.Item value="translate" title="Translate to English" />
+      </Form.Dropdown>
+      <Form.Dropdown
+        id="targetLanguage"
+        title="Translate to"
+        defaultValue={NO_TRANSLATION}
+      >
+        <Form.Dropdown.Item value={NO_TRANSLATION} title="Don't Translate" />
+        {TRANSLATION_TARGET_LANGUAGES.map((language) => (
+          <Form.Dropdown.Item
+            key={language.code}
+            value={language.code}
+            title={language.title}
+          />
+        ))}
       </Form.Dropdown>
     </Form>
   );

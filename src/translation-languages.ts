@@ -1,0 +1,23 @@
+/** The languages dictum's API can translate a transcript into. */
+export const TRANSLATION_TARGET_LANGUAGES = [
+  { code: "ar", title: "Arabic" },
+  { code: "zh-Hans", title: "Chinese, Simplified" },
+  { code: "zh-Hant", title: "Chinese, Traditional" },
+  { code: "nl", title: "Dutch" },
+  { code: "en", title: "English" },
+  { code: "fr", title: "French" },
+  { code: "de", title: "German" },
+  { code: "hi", title: "Hindi" },
+  { code: "id", title: "Indonesian" },
+  { code: "it", title: "Italian" },
+  { code: "ja", title: "Japanese" },
+  { code: "ko", title: "Korean" },
+  { code: "pl", title: "Polish" },
+  { code: "pt", title: "Portuguese" },
+  { code: "ru", title: "Russian" },
+  { code: "es", title: "Spanish" },
+  { code: "th", title: "Thai" },
+  { code: "tr", title: "Turkish" },
+  { code: "uk", title: "Ukrainian" },
+  { code: "vi", title: "Vietnamese" },
+];
