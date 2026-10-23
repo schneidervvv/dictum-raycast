@@ -120,15 +120,24 @@ export function dictumBundleIds(): string[] {
  * checks next to it, and the actions on its rows all talk to the same
  * dictum. Commands run in their own process, so this resets per command.
  */
-let commandInstancePort: number | undefined;
+let commandInstance: Pick<DiscoveredInstance, "port" | "token"> | undefined;
 
 const instanceGoneMessage =
   "The dictum instance this command was using is no longer running. Reopen the command.";
 
-/** Discovered instances, the preferred one first. */
-function candidateInstances(preferredPort?: number): DiscoveredInstance[] {
+// The Release and the Dev build can share a port, so the port alone does not
+// tell them apart; their tokens do.
+function isCommandInstance(instance: DiscoveredInstance): boolean {
+  return (
+    instance.port === commandInstance?.port &&
+    instance.token === commandInstance?.token
+  );
+}
+
+/** Discovered instances, the one this command settled on first. */
+function candidateInstances(): DiscoveredInstance[] {
   const instances = discoverInstances();
-  const index = instances.findIndex((i) => i.port === preferredPort);
+  const index = instances.findIndex(isCommandInstance);
   return index > 0
     ? [instances[index], ...instances.filter((_, i) => i !== index)]
     : instances;
@@ -221,10 +230,10 @@ async function request<T>(
 ): Promise<T> {
   const isMultipart = options.body instanceof FormData;
   const hasJsonBody = options.body !== undefined && !isMultipart;
-  const isBound = commandInstancePort !== undefined;
-  let candidates = candidateInstances(commandInstancePort);
+  const isBound = commandInstance !== undefined;
+  let candidates = candidateInstances();
   if (isBound) {
-    const bound = candidates.find((i) => i.port === commandInstancePort);
+    const bound = candidates.find(isCommandInstance);
     if (!bound) {
       throw new DictumError(instanceGoneMessage);
     }
@@ -300,8 +309,8 @@ async function request<T>(
     // instance. The first answer settles the command; a response that came
     // from another instance is dropped, so its data never sits next to rows
     // whose actions go to the settled one.
-    commandInstancePort ??= instance.port;
-    if (commandInstancePort !== instance.port) {
+    commandInstance ??= { port: instance.port, token: instance.token };
+    if (!isCommandInstance(instance)) {
       throw new DictumError(instanceGoneMessage);
     }
     return parseApiResponse<T>(response, Boolean(instance.token));
