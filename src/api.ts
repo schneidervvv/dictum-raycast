@@ -2,7 +2,7 @@ import { getPreferenceValues } from "@raycast/api";
 import { readFileSync, statSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
-import { Agent } from "undici";
+import { Agent, fetch as undiciFetch } from "undici";
 import type { ApiError } from "./types";
 
 const DEFAULT_PORT = 8978;
@@ -239,9 +239,13 @@ async function request<T>(
       .join("&");
 
     const timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
+    const dispatcher = dispatcherFor(timeoutMs);
+    // A dispatcher works only with the fetch of the same undici package, and
+    // Node's own fetch comes from another undici version.
+    const send = (dispatcher ? undiciFetch : fetch) as typeof fetch;
     let response: Response;
     try {
-      response = await fetch(url.toString(), {
+      response = await send(url.toString(), {
         method,
         headers: {
           ...(instance.token
@@ -255,9 +259,8 @@ async function request<T>(
             ? JSON.stringify(options.body)
             : undefined,
         signal: AbortSignal.timeout(timeoutMs),
-        // Node's fetch takes an undici dispatcher; the DOM RequestInit type
-        // does not list it.
-        dispatcher: dispatcherFor(timeoutMs),
+        // The DOM RequestInit type does not list undici's dispatcher.
+        dispatcher,
       } as RequestInit);
     } catch (error) {
       // A refused connection means nothing reached dictum, so trying the
