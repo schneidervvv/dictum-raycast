@@ -230,6 +230,13 @@ async function request<T>(
       );
     }
 
+    // The Release and the Dev build share a default port, so the newest
+    // discovery file can hold the token of the build that did not get the
+    // port. dictum ran nothing for a 401, so the next instance is safe.
+    if (response.status === 401 && !isBound && index < candidates.length - 1) {
+      continue;
+    }
+
     // Requests started together before the first answer each pick their own
     // instance. The first answer settles the command; a response that came
     // from another instance is dropped, so its data never sits next to rows
