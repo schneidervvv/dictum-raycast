@@ -9,7 +9,10 @@ import {
   setRecorderTranscript,
   stopRecording,
 } from "./recorder-session";
-import { TRANSLATION_TARGET_LANGUAGES } from "./translation-languages";
+import {
+  TRANSLATION_TARGET_LANGUAGES,
+  translationTimeoutMessage,
+} from "./translation-languages";
 import type { RecorderSessionResponse, TranscribeResponse } from "./types";
 
 const POLL_INTERVAL_MS = 2000;
@@ -143,7 +146,9 @@ export default function Command() {
         { path, target_language: targetLanguage },
         {
           timeoutMs: TRANSCRIBE_TIMEOUT_MS,
-          timeoutMessage: "Transcribing the recording took too long.",
+          timeoutMessage: targetLanguage
+            ? translationTimeoutMessage(targetLanguage)
+            : "Transcribing the recording took too long.",
         },
       );
       await setRecorderTranscript(sessionId, result.text);

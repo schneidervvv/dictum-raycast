@@ -21,3 +21,16 @@ export const TRANSLATION_TARGET_LANGUAGES = [
   { code: "uk", title: "Ukrainian" },
   { code: "vi", title: "Vietnamese" },
 ];
+
+/**
+ * The message for a translated request that timed out. When a translation
+ * language is missing, macOS asks in dictum to download it and the request
+ * waits for that dialog.
+ */
+export function translationTimeoutMessage(targetCode: string): string {
+  const target =
+    TRANSLATION_TARGET_LANGUAGES.find(
+      (language) => language.code === targetCode,
+    )?.title ?? targetCode;
+  return `Translation timed out. macOS may be missing the ${target} translation language or the language of the audio. Download both in System Settings > General > Language & Region > Translation Languages, then try again.`;
+}

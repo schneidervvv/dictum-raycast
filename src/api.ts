@@ -299,10 +299,11 @@ export function errorMessage(error: unknown, fallback: string): string {
 export async function apiPostMultipart<T>(
   path: string,
   formData: FormData,
+  timeoutMessage = "Transcription timed out.",
 ): Promise<T> {
   return request<T>("POST", path, {
     body: formData,
     timeoutMs: 60000,
-    timeoutMessage: "Transcription timed out.",
+    timeoutMessage,
   });
 }
