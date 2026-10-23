@@ -1,4 +1,9 @@
-import { closeMainWindow, showHUD } from "@raycast/api";
+import {
+  closeMainWindow,
+  getFrontmostApplication,
+  open,
+  showHUD,
+} from "@raycast/api";
 import {
   apiGet,
   apiPost,
@@ -12,6 +17,21 @@ import type {
   DictationStopResponse,
 } from "./types";
 
+const RAYCAST_BUNDLE_ID = "com.raycast.macos";
+
+/**
+ * Closes Raycast and brings back the app you came from. dictum inserts the
+ * text into the app that macOS reports as active when the dictation starts,
+ * and macOS keeps reporting Raycast as active after its window closes.
+ */
+export async function returnToPreviousApp(): Promise<void> {
+  const previous = await getFrontmostApplication();
+  await closeMainWindow();
+  if (previous.bundleId !== RAYCAST_BUNDLE_ID) {
+    await open(previous.path);
+  }
+}
+
 export async function startDictationWithWorkflow(workflow: {
   id: string;
   name: string;
@@ -21,8 +41,7 @@ export async function startDictationWithWorkflow(workflow: {
     throw new DictumError("A dictation is already running. Stop it first.");
   }
 
-  // Close Raycast first so the dictation goes into the app you came from.
-  await closeMainWindow();
+  await returnToPreviousApp();
   const response = await apiPost<DictationStartResponse>(
     "/v1/dictation/start",
     { workflow_id: workflow.id },
@@ -34,9 +53,7 @@ export async function startDictationWithWorkflow(workflow: {
 }
 
 export async function stopDictation(): Promise<void> {
-  // dictum inserts the text into the frontmost app, so hand focus back
-  // before stopping.
-  await closeMainWindow();
+  await returnToPreviousApp();
   const response = await apiPost<DictationStopResponse>("/v1/dictation/stop");
   await setLastDictationSessionId(response.id);
   await showHUD("Dictation stopped");

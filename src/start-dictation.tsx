@@ -1,4 +1,4 @@
-import { closeMainWindow, showHUD } from "@raycast/api";
+import { showHUD } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
 import {
   apiGet,
@@ -7,7 +7,7 @@ import {
   DictumError,
 } from "./api";
 import { setLastDictationSessionId } from "./dictation-session";
-import { stopDictation } from "./workflow-dictation";
+import { returnToPreviousApp, stopDictation } from "./workflow-dictation";
 import type { DictationStartResponse, DictationStatusResponse } from "./types";
 
 export default async function Command() {
@@ -19,7 +19,7 @@ export default async function Command() {
     if (status.is_recording) {
       await stopDictation();
     } else {
-      await closeMainWindow();
+      await returnToPreviousApp();
       const response = await apiPost<DictationStartResponse>(
         "/v1/dictation/start",
         undefined,
