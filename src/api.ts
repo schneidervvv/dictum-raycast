@@ -94,8 +94,10 @@ function discoverInstances(): DiscoveredInstance[] {
   const prefs = getPreferenceValues<Preferences>();
   const overridePort = prefs.port ? parsePort(prefs.port.trim()) : null;
   if (overridePort) {
-    const match = instances.find((instance) => instance.port === overridePort);
-    return [{ port: overridePort, token: match?.token, writtenAt: 0 }];
+    const onPort = instances.filter(
+      (instance) => instance.port === overridePort,
+    );
+    return onPort.length > 0 ? onPort : [{ port: overridePort, writtenAt: 0 }];
   }
 
   return instances.length > 0
