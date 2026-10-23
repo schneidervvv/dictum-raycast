@@ -9,7 +9,7 @@ import {
   Keyboard,
 } from "@raycast/api";
 import { showFailureToast, usePromise } from "@raycast/utils";
-import { apiGet, apiPut, errorMessage, TypeWhisperError } from "./api";
+import { apiGet, apiPut, errorMessage, DictumError } from "./api";
 import type { ProfilesResponse } from "./types";
 import {
   RunningDictationSection,
@@ -32,7 +32,7 @@ export default function Command() {
       });
     } catch (error) {
       const msg =
-        error instanceof TypeWhisperError
+        error instanceof DictumError
           ? error.message
           : "Failed to toggle workflow";
       await showToast({ style: Toast.Style.Failure, title: msg });
@@ -47,7 +47,7 @@ export default function Command() {
       await startDictationWithWorkflow(workflow);
     } catch (error) {
       await showFailureToast(errorMessage(error, "Failed to start dictation"), {
-        title: "TypeWhisper",
+        title: "dictum",
       });
     }
   }
@@ -60,7 +60,7 @@ export default function Command() {
       {profiles.length === 0 && !isLoading ? (
         <List.EmptyView
           title="No workflows configured"
-          description="Create workflows in TypeWhisper Settings > Workflows"
+          description="Create workflows in dictum Settings > Workflows"
           icon={Icon.Wand}
         />
       ) : (
@@ -100,10 +100,7 @@ export default function Command() {
                   <Action
                     title="Dictate with Workflow"
                     icon={Icon.Microphone}
-                    shortcut={{
-                      macOS: { modifiers: ["cmd"], key: "d" },
-                      Windows: { modifiers: ["ctrl"], key: "d" },
-                    }}
+                    shortcut={{ modifiers: ["cmd"], key: "d" }}
                     onAction={() => dictate(profile)}
                   />
                 )}

@@ -2,7 +2,7 @@ import { Action, ActionPanel, Detail, Icon, Keyboard } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
 import { usePromise } from "@raycast/utils";
 import { useEffect, useState } from "react";
-import { apiGet, apiPost, errorMessage, TypeWhisperError } from "./api";
+import { apiGet, apiPost, errorMessage, DictumError } from "./api";
 import {
   getLastRecorderSessionId,
   getRecorderTranscript,
@@ -35,8 +35,8 @@ async function fetchLastRecording(): Promise<RecorderSessionResponse | null> {
     }
     return session;
   } catch (error) {
-    // TypeWhisper keeps recorder sessions only until it quits.
-    if (error instanceof TypeWhisperError && error.statusCode === 404) {
+    // dictum keeps recorder sessions only until it quits.
+    if (error instanceof DictumError && error.statusCode === 404) {
       return null;
     }
     throw error;
@@ -58,7 +58,7 @@ function markdownFor(
     return "";
   }
   if (session === null) {
-    return "## No recording yet\n\nStart one with **Toggle Recording**. Recordings started before TypeWhisper last quit are not shown here.";
+    return "## No recording yet\n\nStart one with **Toggle Recording**. Recordings started before dictum last quit are not shown here.";
   }
 
   switch (session.status) {
@@ -67,14 +67,14 @@ function markdownFor(
     case "finalizing":
       return "## Transcribing…\n\nThis view updates when the transcript is ready.";
     case "failed":
-      return `## Recording failed\n\n${session.error ?? "TypeWhisper did not report a reason."}`;
+      return `## Recording failed\n\n${session.error ?? "dictum did not report a reason."}`;
     case "completed":
       if (session.text) {
         return session.text;
       }
       return session.output_file
-        ? "## No transcript yet\n\nTypeWhisper saved the recording without transcribing it. Press Enter to transcribe it now."
-        : "## No transcript\n\nTypeWhisper did not save a recording file.";
+        ? "## No transcript yet\n\ndictum saved the recording without transcribing it. Press Enter to transcribe it now."
+        : "## No transcript\n\ndictum did not save a recording file.";
   }
 }
 
@@ -125,7 +125,7 @@ export default function Command() {
       revalidate();
     } catch (error) {
       await showFailureToast(errorMessage(error, "Failed to stop recording"), {
-        title: "TypeWhisper",
+        title: "dictum",
       });
     }
   }
@@ -145,7 +145,7 @@ export default function Command() {
       setTranscribed({ sessionId, text: result.text });
     } catch (err) {
       await showFailureToast(errorMessage(err, "Failed to transcribe"), {
-        title: "TypeWhisper",
+        title: "dictum",
       });
     } finally {
       setTranscribingSessionId((current) =>

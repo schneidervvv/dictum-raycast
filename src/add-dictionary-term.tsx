@@ -31,10 +31,10 @@ export default async function Command(
 
   try {
     await addDictionaryTerm(term);
-    await showHUD(`Added "${term}" to the TypeWhisper dictionary`);
+    await showHUD(`Added "${term}" to the dictum dictionary`);
   } catch (error) {
     await showFailureToast(errorMessage(error, "Failed to add term"), {
-      title: "TypeWhisper",
+      title: "dictum",
     });
   }
 }

@@ -4,7 +4,7 @@ import {
   apiGet,
   apiPost,
   DICTATION_START_TIMEOUT_MS,
-  TypeWhisperError,
+  DictumError,
 } from "./api";
 import { setLastDictationSessionId } from "./dictation-session";
 import { stopDictation } from "./workflow-dictation";
@@ -30,11 +30,11 @@ export default async function Command() {
       await showHUD("Dictation started");
     }
   } catch (error) {
-    if (error instanceof TypeWhisperError) {
-      await showFailureToast(error.message, { title: "TypeWhisper" });
+    if (error instanceof DictumError) {
+      await showFailureToast(error.message, { title: "dictum" });
     } else {
       await showFailureToast("An unexpected error occurred", {
-        title: "TypeWhisper",
+        title: "dictum",
       });
     }
   }

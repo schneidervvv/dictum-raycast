@@ -57,7 +57,7 @@ export function AddTermForm(props: {
       <Form.TextField
         id="term"
         title="Term"
-        placeholder="TypeWhisper"
+        placeholder="dictum"
         info="A name or word the speech engine should recognize."
         defaultValue={props.initialTerm}
         error={termError}
@@ -158,7 +158,7 @@ export function AddCorrectionForm(props: {
       <Form.TextField
         id="replacement"
         title="With"
-        placeholder="TypeWhisper"
+        placeholder="dictum"
         defaultValue={props.initialReplacement}
       />
       <Form.Checkbox

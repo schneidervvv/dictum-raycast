@@ -6,74 +6,45 @@ import type { ApiError } from "./types";
 
 const DEFAULT_PORT = 8978;
 const TIMEOUT_MS = 10000;
-// TypeWhisper answers a dictation start only after the model is ready,
+// dictum answers a dictation start only after the model is ready,
 // which can include loading a local model.
 export const DICTATION_START_TIMEOUT_MS = 5 * 60 * 1000;
 
-export class TypeWhisperError extends Error {
+export class DictumError extends Error {
   constructor(
     message: string,
     public statusCode?: number,
   ) {
     super(message);
-    this.name = "TypeWhisperError";
+    this.name = "DictumError";
   }
 }
+
+interface Edition {
+  bundleId: string;
+  appSupportFolder: string;
+}
+
+/** The Release build first, then the Dev build. */
+const EDITIONS: Edition[] = [
+  { bundleId: "com.schneidervvv.dictum", appSupportFolder: "dictum" },
+  { bundleId: "com.schneidervvv.dictum.dev", appSupportFolder: "dictum-Dev" },
+];
 
 interface DiscoveredInstance {
   port: number;
   token?: string;
   writtenAt: number;
+  bundleId?: string;
 }
 
-function appSupportDirectories(): string[] {
-  if (process.platform === "win32") {
-    const root =
-      process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
-    // Microsoft Store builds are MSIX packages, so Windows redirects their
-    // %LOCALAPPDATA% writes into the package's LocalCache.
-    const packageData = (familyName: string) =>
-      join(root, "Packages", familyName, "LocalCache", "Local");
-    // Current WinUI profiles first, then the folders of older versions.
-    return [
-      join(root, "TypeWhisper-WinUI"),
-      join(root, "TypeWhisper-WinUI-DevUserData"),
-      join(root, "TypeWhisper-WinUI-StoreBeta"),
-      join(
-        packageData("TypeWhisper.TypeWhisper_51tqb5623pxja"),
-        "TypeWhisper-WinUI",
-      ),
-      join(
-        packageData("TypeWhisper.TypeWhisperBeta_51tqb5623pxja"),
-        "TypeWhisper-WinUI-StoreBeta",
-      ),
-      ...[
-        "TypeWhisper-UserData",
-        "TypeWhisper",
-        "TypeWhisper-DevUserData",
-        "TypeWhisper-Dev",
-      ].map((name) => join(root, name)),
-    ];
-  }
-
-  const root = join(homedir(), "Library", "Application Support");
-  // The Mac App Store edition is sandboxed and writes into its container.
-  const container = (bundleId: string) =>
-    join(
-      homedir(),
-      "Library",
-      "Containers",
-      bundleId,
-      "Data",
-      "Library",
-      "Application Support",
-    );
-  return [
-    join(root, "TypeWhisper"),
-    join(root, "TypeWhisper-Dev"),
-    join(container("com.typewhisper.typewhisper-app"), "TypeWhisper"),
-    join(container("com.typewhisper.typewhisper-app.dev"), "TypeWhisper-Dev"),
-  ];
+function appSupportDirectory(edition: Edition): string {
+  return join(
+    homedir(),
+    "Library",
+    "Application Support",
+    edition.appSupportFolder,
+  );
 }
 
 function parsePort(value: unknown): number | null {
@@ -81,39 +52,36 @@ function parsePort(value: unknown): number | null {
   return Number.isInteger(port) && port > 0 && port <= 65535 ? port : null;
 }
 
-// TypeWhisper writes api-discovery.json (port and API token) while its API
-// server runs. Older versions only write the api-port file.
-function readInstance(directory: string): DiscoveredInstance | null {
+// dictum writes api-discovery.json (port and API token) while its API server
+// runs and deletes it when the server stops.
+function readInstance(edition: Edition): DiscoveredInstance | null {
   try {
-    const path = join(directory, "api-discovery.json");
+    const path = join(appSupportDirectory(edition), "api-discovery.json");
     const document = JSON.parse(readFileSync(path, "utf-8")) as {
       port?: unknown;
       token?: unknown;
     };
     const port = parsePort(document.port);
-    if (port) {
-      const token =
-        typeof document.token === "string" && document.token.trim() !== ""
-          ? document.token.trim()
-          : undefined;
-      return { port, token, writtenAt: statSync(path).mtimeMs };
+    if (!port) {
+      return null;
     }
-  } catch {
-    // fall back to the legacy port file
-  }
-
-  try {
-    const path = join(directory, "api-port");
-    const port = parsePort(readFileSync(path, "utf-8").trim());
-    return port ? { port, writtenAt: statSync(path).mtimeMs } : null;
+    const token =
+      typeof document.token === "string" && document.token.trim() !== ""
+        ? document.token.trim()
+        : undefined;
+    return {
+      port,
+      token,
+      writtenAt: statSync(path).mtimeMs,
+      bundleId: edition.bundleId,
+    };
   } catch {
     return null;
   }
 }
 
 function discoverInstances(): DiscoveredInstance[] {
-  const instances = appSupportDirectories()
-    .map(readInstance)
+  const instances = EDITIONS.map(readInstance)
     .filter((instance): instance is DiscoveredInstance => instance !== null)
     // A crashed app can leave its files behind. The newest file usually
     // belongs to the instance that started its API server last.
@@ -132,15 +100,26 @@ function discoverInstances(): DiscoveredInstance[] {
 }
 
 /**
+ * Bundle IDs to open, best first: editions whose API server runs, newest
+ * first, then the Release and the Dev build.
+ */
+export function dictumBundleIds(): string[] {
+  const running = discoverInstances().flatMap((instance) =>
+    instance.bundleId ? [instance.bundleId] : [],
+  );
+  return [...new Set([...running, ...EDITIONS.map((e) => e.bundleId)])];
+}
+
+/**
  * The instance this command settled on: the first one that answered. Every
  * later request goes there, reads and writes alike, so a list, the status
  * checks next to it, and the actions on its rows all talk to the same
- * TypeWhisper. Commands run in their own process, so this resets per command.
+ * dictum. Commands run in their own process, so this resets per command.
  */
 let commandInstancePort: number | undefined;
 
 const instanceGoneMessage =
-  "The TypeWhisper instance this command was using is no longer running. Reopen the command.";
+  "The dictum instance this command was using is no longer running. Reopen the command.";
 
 /** Discovered instances, the preferred one first. */
 function candidateInstances(preferredPort?: number): DiscoveredInstance[] {
@@ -161,10 +140,10 @@ async function parseApiResponse<T>(
   sentToken: boolean,
 ): Promise<T> {
   if (response.status === 401) {
-    throw new TypeWhisperError(
+    throw new DictumError(
       sentToken
-        ? "TypeWhisper rejected the API token. Restart TypeWhisper and try again."
-        : "TypeWhisper requires an API token, but none was found. Update and restart TypeWhisper, then try again.",
+        ? "dictum rejected the API token. Restart dictum and try again."
+        : "dictum requires an API token, but none was found. Restart dictum, then try again.",
       401,
     );
   }
@@ -177,7 +156,7 @@ async function parseApiResponse<T>(
     } catch {
       // ignore parse errors
     }
-    throw new TypeWhisperError(message, response.status);
+    throw new DictumError(message, response.status);
   }
 
   return (await response.json()) as T;
@@ -202,7 +181,7 @@ async function request<T>(
   if (isBound) {
     const bound = candidates.find((i) => i.port === commandInstancePort);
     if (!bound) {
-      throw new TypeWhisperError(instanceGoneMessage);
+      throw new DictumError(instanceGoneMessage);
     }
     candidates = [bound];
   }
@@ -231,24 +210,23 @@ async function request<T>(
         signal: AbortSignal.timeout(options.timeoutMs ?? TIMEOUT_MS),
       });
     } catch (error) {
-      // A refused connection means nothing reached TypeWhisper, so trying the
+      // A refused connection means nothing reached dictum, so trying the
       // next instance cannot run a request twice.
       if (isConnectionRefused(error)) {
         if (index < candidates.length - 1) {
           continue;
         }
         if (isBound) {
-          throw new TypeWhisperError(instanceGoneMessage);
+          throw new DictumError(instanceGoneMessage);
         }
       }
       if (error instanceof DOMException && error.name === "TimeoutError") {
-        throw new TypeWhisperError(
-          options.timeoutMessage ??
-            "Request timed out. Is TypeWhisper running?",
+        throw new DictumError(
+          options.timeoutMessage ?? "Request timed out. Is dictum running?",
         );
       }
-      throw new TypeWhisperError(
-        "Cannot connect to TypeWhisper. Make sure the app is running and the API server is enabled in Settings > Advanced.",
+      throw new DictumError(
+        "Cannot connect to dictum. Make sure the app is running and the API server is enabled in Settings > Advanced.",
       );
     }
 
@@ -258,12 +236,12 @@ async function request<T>(
     // whose actions go to the settled one.
     commandInstancePort ??= instance.port;
     if (commandInstancePort !== instance.port) {
-      throw new TypeWhisperError(instanceGoneMessage);
+      throw new DictumError(instanceGoneMessage);
     }
     return parseApiResponse<T>(response, Boolean(instance.token));
   }
 
-  throw new TypeWhisperError("No TypeWhisper instance found.");
+  throw new DictumError("No dictum instance found.");
 }
 
 export async function apiGet<T>(
@@ -307,7 +285,7 @@ export async function apiDeleteJson<T>(
 }
 
 export function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof TypeWhisperError ? error.message : fallback;
+  return error instanceof DictumError ? error.message : fallback;
 }
 
 export async function apiPostMultipart<T>(

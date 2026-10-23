@@ -63,7 +63,7 @@ export default function Command() {
     return confirmAndDelete({
       title: `Delete "${term}"?`,
       message:
-        "TypeWhisper will no longer pass this term to the speech engine. This cannot be undone.",
+        "dictum will no longer pass this term to the speech engine. This cannot be undone.",
       path: "/v1/dictionary/terms",
       body: { term },
     });
@@ -72,7 +72,7 @@ export default function Command() {
   function deleteCorrection(correction: DictionaryCorrection) {
     return confirmAndDelete({
       title: `Delete the correction for "${correction.original}"?`,
-      message: `TypeWhisper will stop replacing it with "${correction.replacement}". This cannot be undone.`,
+      message: `dictum will stop replacing it with "${correction.replacement}". This cannot be undone.`,
       path: "/v1/dictionary/corrections",
       body: { original: correction.original },
     });
@@ -89,10 +89,7 @@ export default function Command() {
       <Action.Push
         title="Add Correction"
         icon={Icon.Replace}
-        shortcut={{
-          macOS: { modifiers: ["cmd", "shift"], key: "n" },
-          Windows: { modifiers: ["ctrl", "shift"], key: "n" },
-        }}
+        shortcut={{ modifiers: ["cmd", "shift"], key: "n" }}
         target={<AddCorrectionForm onAdded={refresh} />}
       />
       <Action
@@ -113,7 +110,7 @@ export default function Command() {
       {termList.length === 0 && correctionList.length === 0 && !isLoading ? (
         <List.EmptyView
           title="Dictionary is empty"
-          description="Add terms the speech engine should recognize, or corrections TypeWhisper applies after transcription."
+          description="Add terms the speech engine should recognize, or corrections dictum applies after transcription."
           icon={Icon.Book}
           actions={<ActionPanel>{addActions}</ActionPanel>}
         />

@@ -3,7 +3,7 @@ import {
   apiGet,
   apiPost,
   DICTATION_START_TIMEOUT_MS,
-  TypeWhisperError,
+  DictumError,
 } from "./api";
 import { setLastDictationSessionId } from "./dictation-session";
 import type {
@@ -18,9 +18,7 @@ export async function startDictationWithWorkflow(workflow: {
 }): Promise<void> {
   const status = await apiGet<DictationStatusResponse>("/v1/dictation/status");
   if (status.is_recording) {
-    throw new TypeWhisperError(
-      "A dictation is already running. Stop it first.",
-    );
+    throw new DictumError("A dictation is already running. Stop it first.");
   }
 
   // Close Raycast first so the dictation goes into the app you came from.
@@ -36,7 +34,7 @@ export async function startDictationWithWorkflow(workflow: {
 }
 
 export async function stopDictation(): Promise<void> {
-  // TypeWhisper inserts the text into the frontmost app, so hand focus back
+  // dictum inserts the text into the frontmost app, so hand focus back
   // before stopping.
   await closeMainWindow();
   const response = await apiPost<DictationStopResponse>("/v1/dictation/stop");

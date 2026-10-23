@@ -11,7 +11,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { readFileSync, statSync } from "fs";
 import { basename } from "path";
-import { apiPostMultipart, TypeWhisperError } from "./api";
+import { apiPostMultipart, DictumError } from "./api";
 import type { TranscribeResponse } from "./types";
 
 const AUDIO_EXTENSIONS = [
@@ -179,9 +179,7 @@ export default function Command() {
       );
     } catch (error) {
       const msg =
-        error instanceof TypeWhisperError
-          ? error.message
-          : "Transcription failed";
+        error instanceof DictumError ? error.message : "Transcription failed";
       toast.style = Toast.Style.Failure;
       toast.title = msg;
     } finally {
