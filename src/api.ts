@@ -2,10 +2,14 @@ import { getPreferenceValues } from "@raycast/api";
 import { readFileSync, statSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
+import { Agent } from "undici";
 import type { ApiError } from "./types";
 
 const DEFAULT_PORT = 8978;
 const TIMEOUT_MS = 10000;
+// Node's fetch stops waiting for the response after 5 minutes on its own,
+// whatever the request's timeout allows.
+const FETCH_DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 // dictum answers a dictation start only after the model is ready,
 // which can include loading a local model.
 export const DICTATION_START_TIMEOUT_MS = 5 * 60 * 1000;
@@ -130,9 +134,50 @@ function candidateInstances(preferredPort?: number): DiscoveredInstance[] {
     : instances;
 }
 
+function errorCode(error: unknown): unknown {
+  return (error as { cause?: { code?: unknown } } | null)?.cause?.code;
+}
+
 function isConnectionRefused(error: unknown): boolean {
-  const cause = (error as { cause?: { code?: unknown } } | null)?.cause;
-  return cause?.code === "ECONNREFUSED";
+  return errorCode(error) === "ECONNREFUSED";
+}
+
+// Failures before the request reached dictum, or dictum went away.
+const CONNECTION_ERROR_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "EPIPE",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+
+function isTimeout(error: unknown): boolean {
+  const code = errorCode(error);
+  return (
+    (error instanceof DOMException && error.name === "TimeoutError") ||
+    code === "UND_ERR_HEADERS_TIMEOUT" ||
+    code === "UND_ERR_BODY_TIMEOUT"
+  );
+}
+
+const longRequestDispatchers = new Map<number, Agent>();
+
+/** A dispatcher that waits as long as the request's own timeout. */
+function dispatcherFor(timeoutMs: number): Agent | undefined {
+  if (timeoutMs <= FETCH_DEFAULT_TIMEOUT_MS) {
+    return undefined;
+  }
+  let dispatcher = longRequestDispatchers.get(timeoutMs);
+  if (!dispatcher) {
+    dispatcher = new Agent({
+      headersTimeout: timeoutMs,
+      bodyTimeout: timeoutMs,
+    });
+    longRequestDispatchers.set(timeoutMs, dispatcher);
+  }
+  return dispatcher;
 }
 
 async function parseApiResponse<T>(
@@ -193,6 +238,7 @@ async function request<T>(
       .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
       .join("&");
 
+    const timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
     let response: Response;
     try {
       response = await fetch(url.toString(), {
@@ -208,8 +254,11 @@ async function request<T>(
           : hasJsonBody
             ? JSON.stringify(options.body)
             : undefined,
-        signal: AbortSignal.timeout(options.timeoutMs ?? TIMEOUT_MS),
-      });
+        signal: AbortSignal.timeout(timeoutMs),
+        // Node's fetch takes an undici dispatcher; the DOM RequestInit type
+        // does not list it.
+        dispatcher: dispatcherFor(timeoutMs),
+      } as RequestInit);
     } catch (error) {
       // A refused connection means nothing reached dictum, so trying the
       // next instance cannot run a request twice.
@@ -221,13 +270,19 @@ async function request<T>(
           throw new DictumError(instanceGoneMessage);
         }
       }
-      if (error instanceof DOMException && error.name === "TimeoutError") {
+      if (isTimeout(error)) {
         throw new DictumError(
           options.timeoutMessage ?? "Request timed out. Is dictum running?",
         );
       }
+      if (CONNECTION_ERROR_CODES.has(String(errorCode(error)))) {
+        throw new DictumError(
+          "Cannot connect to dictum. Make sure the app is running and the API server is enabled in Settings > Advanced.",
+        );
+      }
       throw new DictumError(
-        "Cannot connect to dictum. Make sure the app is running and the API server is enabled in Settings > Advanced.",
+        // fetch reports every failure as "fetch failed"; the cause says why.
+        `The request to dictum failed: ${String((error as { cause?: { message?: unknown } }).cause?.message ?? error)}`,
       );
     }
 

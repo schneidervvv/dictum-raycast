@@ -69,7 +69,7 @@ export default function Command() {
         { engine: model.engine, model: model.id },
         {
           timeoutMs: LOAD_TIMEOUT_MS,
-          timeoutMessage: "Loading the model took too long.",
+          timeoutMessage: `Loading ${model.name} took more than 15 minutes. dictum may still be downloading it; check the speech model in dictum.`,
         },
       );
       toast.style = Toast.Style.Success;
