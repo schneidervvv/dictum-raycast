@@ -47,6 +47,10 @@ npm run dev
 
 两个版本同时运行时，扩展先连接最近启动 API 服务的那个；它拒绝令牌时，再连接另一个。如果 dictum 使用了自定义端口，在扩展设置的 **API Port Override** 里填写端口。
 
+## 翻译
+
+Transcribe File 只有一个翻译选项 **Translate to**，Show Last Recording 的操作菜单里是 **Transcribe and Translate to**。选择目标语言后，dictum 先转写，再用 macOS 的翻译功能翻译，所以任何语音识别引擎都能翻译成列表里的任何语言。macOS 需要先下载音频语言和目标语言：在“系统设置 > 通用 > 语言与地区 > 翻译语言”里下载。缺少语言时 macOS 会在 dictum 里弹出下载窗口，扩展等待超时后会提示下载这两种语言。
+
 ## 授权
 
 [MIT](LICENSE)。本扩展基于 [TypeWhisper 的 Raycast 扩展](https://github.com/TypeWhisper/typewhisper-raycast)（MIT 授权）修改。
@@ -97,6 +101,10 @@ The extension reads dictum's API port and token on its own. While its API server
 - Dev: `~/Library/Application Support/dictum-Dev/api-discovery.json`
 
 When both builds run, the extension first connects to the one that started its API server last; if that one rejects the token, it connects to the other. If dictum uses a custom port, set it under **API Port Override** in the extension preferences.
+
+### Translation
+
+Transcribe File has a single translation option, **Translate to**; in Show Last Recording it is the **Transcribe and Translate to** action. When you choose a target language, dictum transcribes first and then translates with macOS translation, so every speech engine can translate into every language in the list. macOS needs the language of the audio and the target language downloaded first: download them in System Settings > General > Language & Region > Translation Languages. When one is missing, macOS shows a download window in dictum, and after the request times out the extension tells you to download both languages.
 
 ### License
 

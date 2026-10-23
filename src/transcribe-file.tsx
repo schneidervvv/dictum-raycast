@@ -12,7 +12,10 @@ import { useEffect, useRef, useState } from "react";
 import { readFileSync, statSync } from "fs";
 import { basename } from "path";
 import { apiPostMultipart, DictumError } from "./api";
-import { TRANSLATION_TARGET_LANGUAGES } from "./translation-languages";
+import {
+  TRANSLATION_TARGET_LANGUAGES,
+  translationTimeoutMessage,
+} from "./translation-languages";
 import type { TranscribeResponse } from "./types";
 
 const NO_TRANSLATION = "none";
@@ -132,7 +135,6 @@ export default function Command() {
   async function handleSubmit(values: {
     file: string[];
     language: string;
-    task: string;
     targetLanguage: string;
   }) {
     const filePath = values.file?.[0];
@@ -169,16 +171,17 @@ export default function Command() {
       if (values.language && values.language !== "auto") {
         formData.append("language", values.language);
       }
-      if (values.task) {
-        formData.append("task", values.task);
-      }
-      if (values.targetLanguage !== NO_TRANSLATION) {
+      const translates = values.targetLanguage !== NO_TRANSLATION;
+      if (translates) {
         formData.append("target_language", values.targetLanguage);
       }
 
       const result = await apiPostMultipart<TranscribeResponse>(
         "/v1/transcribe",
         formData,
+        translates
+          ? translationTimeoutMessage(values.targetLanguage)
+          : undefined,
       );
       toast.hide();
       push(
@@ -223,10 +226,6 @@ export default function Command() {
         <Form.Dropdown.Item value="ja" title="Japanese" />
         <Form.Dropdown.Item value="ko" title="Korean" />
         <Form.Dropdown.Item value="zh" title="Chinese" />
-      </Form.Dropdown>
-      <Form.Dropdown id="task" title="Task" defaultValue="transcribe">
-        <Form.Dropdown.Item value="transcribe" title="Transcribe" />
-        <Form.Dropdown.Item value="translate" title="Translate to English" />
       </Form.Dropdown>
       <Form.Dropdown
         id="targetLanguage"
