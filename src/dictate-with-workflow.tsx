@@ -25,7 +25,7 @@ export default function Command() {
       await startDictationWithWorkflow(workflow);
     } catch (error) {
       await showFailureToast(errorMessage(error, "Failed to start dictation"), {
-        title: "TypeWhisper",
+        title: "dictum",
       });
     }
   }
@@ -36,7 +36,7 @@ export default function Command() {
       {workflows.length === 0 && !isLoading ? (
         <List.EmptyView
           title="No enabled workflows"
-          description="Create or enable workflows in TypeWhisper Settings > Workflows"
+          description="Create or enable workflows in dictum Settings > Workflows"
           icon={Icon.Wand}
         />
       ) : (

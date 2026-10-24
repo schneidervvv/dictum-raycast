@@ -1,5 +1,5 @@
 import { LocalStorage } from "@raycast/api";
-import { TypeWhisperError, apiGet } from "./api";
+import { DictumError, apiGet } from "./api";
 import type { DictationTranscriptionResponse } from "./types";
 
 const LAST_DICTATION_SESSION_ID_KEY = "last-dictation-session-id";
@@ -25,7 +25,7 @@ export async function fetchLastKnownDictationTranscription(): Promise<DictationT
       { id },
     );
   } catch (error) {
-    if (error instanceof TypeWhisperError && error.statusCode === 404) {
+    if (error instanceof DictumError && error.statusCode === 404) {
       return null;
     }
     throw error;

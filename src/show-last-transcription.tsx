@@ -1,6 +1,6 @@
 import { Clipboard, closeMainWindow, showHUD } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
-import { apiGet, TypeWhisperError } from "./api";
+import { apiGet, DictumError } from "./api";
 import { fetchLastKnownDictationTranscription } from "./dictation-session";
 import type { HistoryResponse } from "./types";
 
@@ -37,7 +37,7 @@ export default async function Command() {
       if (sessionResponse.status === "failed") {
         await showFailureToast(
           sessionResponse.error || "The last dictation failed",
-          { title: "TypeWhisper" },
+          { title: "dictum" },
         );
         return;
       }
@@ -54,11 +54,11 @@ export default async function Command() {
 
     await copyAndPreview(response.entries[0].text);
   } catch (error) {
-    if (error instanceof TypeWhisperError) {
-      await showFailureToast(error.message, { title: "TypeWhisper" });
+    if (error instanceof DictumError) {
+      await showFailureToast(error.message, { title: "dictum" });
     } else {
       await showFailureToast("An unexpected error occurred", {
-        title: "TypeWhisper",
+        title: "dictum",
       });
     }
   }

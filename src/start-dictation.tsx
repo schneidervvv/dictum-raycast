@@ -1,13 +1,13 @@
-import { closeMainWindow, showHUD } from "@raycast/api";
+import { showHUD } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
 import {
   apiGet,
   apiPost,
   DICTATION_START_TIMEOUT_MS,
-  TypeWhisperError,
+  DictumError,
 } from "./api";
 import { setLastDictationSessionId } from "./dictation-session";
-import { stopDictation } from "./workflow-dictation";
+import { returnToPreviousApp, stopDictation } from "./workflow-dictation";
 import type { DictationStartResponse, DictationStatusResponse } from "./types";
 
 export default async function Command() {
@@ -19,7 +19,7 @@ export default async function Command() {
     if (status.is_recording) {
       await stopDictation();
     } else {
-      await closeMainWindow();
+      await returnToPreviousApp();
       const response = await apiPost<DictationStartResponse>(
         "/v1/dictation/start",
         undefined,
@@ -30,11 +30,11 @@ export default async function Command() {
       await showHUD("Dictation started");
     }
   } catch (error) {
-    if (error instanceof TypeWhisperError) {
-      await showFailureToast(error.message, { title: "TypeWhisper" });
+    if (error instanceof DictumError) {
+      await showFailureToast(error.message, { title: "dictum" });
     } else {
       await showFailureToast("An unexpected error occurred", {
-        title: "TypeWhisper",
+        title: "dictum",
       });
     }
   }

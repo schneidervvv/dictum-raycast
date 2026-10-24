@@ -52,17 +52,8 @@ export default function Command() {
     if (model.status === "not_configured") {
       await showToast({
         style: Toast.Style.Failure,
-        title: `Set up ${model.engine} in TypeWhisper first`,
-        message: "Open TypeWhisper Settings to add the API key or plugin.",
-      });
-      return;
-    }
-
-    // TypeWhisper for Windows loads only models that are already downloaded.
-    if (process.platform === "win32" && model.downloaded === false) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: `Download ${model.name} in TypeWhisper first`,
+        title: `Set up ${model.engine} in dictum first`,
+        message: "Open dictum Settings to add the API key or plugin.",
       });
       return;
     }
@@ -78,7 +69,7 @@ export default function Command() {
         { engine: model.engine, model: model.id },
         {
           timeoutMs: LOAD_TIMEOUT_MS,
-          timeoutMessage: "Loading the model took too long.",
+          timeoutMessage: `Loading ${model.name} took more than 15 minutes. dictum may still be downloading it; check the speech model in dictum.`,
         },
       );
       toast.style = Toast.Style.Success;
@@ -99,7 +90,7 @@ export default function Command() {
       {groups.length === 0 && !isLoading ? (
         <List.EmptyView
           title="No models available"
-          description="Install a transcription engine in TypeWhisper Settings"
+          description="Install a transcription engine in dictum Settings"
           icon={Icon.ComputerChip}
         />
       ) : (

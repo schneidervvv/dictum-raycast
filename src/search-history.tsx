@@ -12,7 +12,7 @@ import {
 } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import { useState } from "react";
-import { apiDelete, apiGet, TypeWhisperError } from "./api";
+import { apiDelete, apiGet, DictumError } from "./api";
 import type { HistoryResponse } from "./types";
 
 const PAGE_SIZE = 50;
@@ -73,9 +73,7 @@ export default function Command() {
         revalidate();
       } catch (error) {
         const msg =
-          error instanceof TypeWhisperError
-            ? error.message
-            : "Failed to delete";
+          error instanceof DictumError ? error.message : "Failed to delete";
         await showToast({ style: Toast.Style.Failure, title: msg });
       }
     }

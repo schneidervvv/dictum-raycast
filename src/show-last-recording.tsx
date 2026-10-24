@@ -2,13 +2,17 @@ import { Action, ActionPanel, Detail, Icon, Keyboard } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
 import { usePromise } from "@raycast/utils";
 import { useEffect, useState } from "react";
-import { apiGet, apiPost, errorMessage, TypeWhisperError } from "./api";
+import { apiGet, apiPost, errorMessage, DictumError } from "./api";
 import {
   getLastRecorderSessionId,
   getRecorderTranscript,
   setRecorderTranscript,
   stopRecording,
 } from "./recorder-session";
+import {
+  TRANSLATION_TARGET_LANGUAGES,
+  translationTimeoutMessage,
+} from "./translation-languages";
 import type { RecorderSessionResponse, TranscribeResponse } from "./types";
 
 const POLL_INTERVAL_MS = 2000;
@@ -35,8 +39,8 @@ async function fetchLastRecording(): Promise<RecorderSessionResponse | null> {
     }
     return session;
   } catch (error) {
-    // TypeWhisper keeps recorder sessions only until it quits.
-    if (error instanceof TypeWhisperError && error.statusCode === 404) {
+    // dictum keeps recorder sessions only until it quits.
+    if (error instanceof DictumError && error.statusCode === 404) {
       return null;
     }
     throw error;
@@ -58,7 +62,7 @@ function markdownFor(
     return "";
   }
   if (session === null) {
-    return "## No recording yet\n\nStart one with **Toggle Recording**. Recordings started before TypeWhisper last quit are not shown here.";
+    return "## No recording yet\n\nStart one with **Toggle Recording**. Recordings started before dictum last quit are not shown here.";
   }
 
   switch (session.status) {
@@ -67,14 +71,14 @@ function markdownFor(
     case "finalizing":
       return "## Transcribing…\n\nThis view updates when the transcript is ready.";
     case "failed":
-      return `## Recording failed\n\n${session.error ?? "TypeWhisper did not report a reason."}`;
+      return `## Recording failed\n\n${session.error ?? "dictum did not report a reason."}`;
     case "completed":
       if (session.text) {
         return session.text;
       }
       return session.output_file
-        ? "## No transcript yet\n\nTypeWhisper saved the recording without transcribing it. Press Enter to transcribe it now."
-        : "## No transcript\n\nTypeWhisper did not save a recording file.";
+        ? "## No transcript yet\n\ndictum saved the recording without transcribing it. Press Enter to transcribe it now."
+        : "## No transcript\n\ndictum did not save a recording file.";
   }
 }
 
@@ -125,27 +129,33 @@ export default function Command() {
       revalidate();
     } catch (error) {
       await showFailureToast(errorMessage(error, "Failed to stop recording"), {
-        title: "TypeWhisper",
+        title: "dictum",
       });
     }
   }
 
-  async function transcribe(sessionId: string, path: string) {
+  async function transcribe(
+    sessionId: string,
+    path: string,
+    targetLanguage?: string,
+  ) {
     setTranscribingSessionId(sessionId);
     try {
       const result = await apiPost<TranscribeResponse>(
         "/v1/transcribe/local-file",
-        { path },
+        { path, target_language: targetLanguage },
         {
           timeoutMs: TRANSCRIBE_TIMEOUT_MS,
-          timeoutMessage: "Transcribing the recording took too long.",
+          timeoutMessage: targetLanguage
+            ? translationTimeoutMessage(targetLanguage)
+            : "Transcribing the recording took too long.",
         },
       );
       await setRecorderTranscript(sessionId, result.text);
       setTranscribed({ sessionId, text: result.text });
     } catch (err) {
       await showFailureToast(errorMessage(err, "Failed to transcribe"), {
-        title: "TypeWhisper",
+        title: "dictum",
       });
     } finally {
       setTranscribingSessionId((current) =>
@@ -171,11 +181,27 @@ export default function Command() {
             <Action title="Stop Recording" icon={Icon.Stop} onAction={stop} />
           )}
           {canTranscribe && !isAnyTranscriptionRunning && (
-            <Action
-              title="Transcribe Recording"
-              icon={Icon.Microphone}
-              onAction={() => data && transcribe(data.id, outputFile)}
-            />
+            <>
+              <Action
+                title="Transcribe Recording"
+                icon={Icon.Microphone}
+                onAction={() => data && transcribe(data.id, outputFile)}
+              />
+              <ActionPanel.Submenu
+                title="Transcribe and Translate to"
+                icon={Icon.Globe}
+              >
+                {TRANSLATION_TARGET_LANGUAGES.map((language) => (
+                  <Action
+                    key={language.code}
+                    title={language.title}
+                    onAction={() =>
+                      data && transcribe(data.id, outputFile, language.code)
+                    }
+                  />
+                ))}
+              </ActionPanel.Submenu>
+            </>
           )}
           {transcript && (
             <>

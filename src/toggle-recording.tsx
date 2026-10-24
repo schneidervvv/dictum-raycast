@@ -21,7 +21,7 @@ export default async function Command() {
     }
   } catch (error) {
     await showFailureToast(errorMessage(error, "Failed to toggle recording"), {
-      title: "TypeWhisper",
+      title: "dictum",
     });
   }
 }

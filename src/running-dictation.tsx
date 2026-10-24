@@ -18,7 +18,7 @@ export function useDictationStatus() {
   );
 
   // After a failure, keep checking at a slower pace so Stop Dictation comes
-  // back once TypeWhisper is reachable again, without a request every 2 s.
+  // back once dictum is reachable again, without a request every 2 s.
   useEffect(() => {
     const timer = setInterval(
       revalidate,
@@ -43,7 +43,7 @@ export function RunningDictationSection(props: {
       await stopDictation();
     } catch (error) {
       await showFailureToast(errorMessage(error, "Failed to stop dictation"), {
-        title: "TypeWhisper",
+        title: "dictum",
       });
     }
   }
