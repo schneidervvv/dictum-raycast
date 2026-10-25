@@ -43,16 +43,18 @@ export default async function Command() {
       }
     }
 
+    // 已取消的录音没有插入过，取最近一条没有取消的记录。
     const response = await apiGet<HistoryResponse>("/v1/history", {
-      limit: "1",
+      limit: "10",
     });
+    const latest = response.entries.find((entry) => !entry.cancelled);
 
-    if (response.entries.length === 0) {
+    if (!latest) {
       await showHUD("No transcriptions yet");
       return;
     }
 
-    await copyAndPreview(response.entries[0].text);
+    await copyAndPreview(latest.text);
   } catch (error) {
     if (error instanceof DictumError) {
       await showFailureToast(error.message, { title: "dictum" });

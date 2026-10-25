@@ -118,6 +118,9 @@ export default function Command() {
                 : Icon.Microphone
             }
             accessories={[
+              ...(entry.cancelled
+                ? [{ tag: { value: "已取消", color: Color.SecondaryText } }]
+                : []),
               { text: formatDuration(entry.duration), icon: Icon.Clock },
               { text: formatRelativeDate(entry.timestamp) },
             ]}
