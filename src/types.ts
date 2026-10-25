@@ -14,6 +14,8 @@ export interface TranscriptionMetadata {
 
 export interface HistoryEntry extends TranscriptionMetadata {
   id: string;
+  /** 按 Esc 取消、没有插入的录音为 true；旧版本的 dictum 不返回这个字段。 */
+  cancelled?: boolean;
 }
 
 export interface HistoryResponse {
